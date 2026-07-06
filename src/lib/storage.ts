@@ -1,7 +1,6 @@
 import type { ChannelConfig, SavedChannelState } from '../types';
 
-const LAST_CONFIG_KEY = 'stream-roulette:last-config:v1';
-const API_KEY_KEY = 'stream-roulette:ssapi-api-key:v1';
+const LAST_CONFIG_KEY = 'simple-stream-roulette:last-config:v2';
 
 const emptyState = (): SavedChannelState => ({
   version: 1,
@@ -11,28 +10,26 @@ const emptyState = (): SavedChannelState => ({
   updatedAt: Date.now(),
 });
 
-export function channelStorageKey(config: Pick<ChannelConfig, 'platform' | 'channelId'>) {
-  return `stream-roulette:channel:${config.platform}:${config.channelId.trim()}:v1`;
+function channelStorageKey(config: Pick<ChannelConfig, 'platform' | 'channelId'>): string {
+  return `simple-stream-roulette:${config.platform}:${config.channelId.trim()}:v2`;
 }
 
 export function loadLastConfig(): ChannelConfig {
   try {
     const raw = localStorage.getItem(LAST_CONFIG_KEY);
-    if (!raw) return { platform: 'chzzk', channelId: '', displayName: '', imageUrl: '', voteUnitPrice: 1000 };
+    if (!raw) return { platform: 'chzzk', channelId: '', voteUnitPrice: 1000 };
     const value = JSON.parse(raw) as Partial<ChannelConfig>;
     return {
       platform: value.platform === 'soop' ? 'soop' : 'chzzk',
       channelId: typeof value.channelId === 'string' ? value.channelId : '',
-      displayName: typeof value.displayName === 'string' ? value.displayName : '',
-      imageUrl: typeof value.imageUrl === 'string' ? value.imageUrl : '',
-      voteUnitPrice: Number.isFinite(value.voteUnitPrice) && Number(value.voteUnitPrice) > 0 ? Number(value.voteUnitPrice) : 1000,
+      voteUnitPrice: Number(value.voteUnitPrice) > 0 ? Math.floor(Number(value.voteUnitPrice)) : 1000,
     };
   } catch {
-    return { platform: 'chzzk', channelId: '', displayName: '', imageUrl: '', voteUnitPrice: 1000 };
+    return { platform: 'chzzk', channelId: '', voteUnitPrice: 1000 };
   }
 }
 
-export function saveLastConfig(config: ChannelConfig) {
+export function saveLastConfig(config: ChannelConfig): void {
   localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(config));
 }
 
@@ -54,24 +51,12 @@ export function loadChannelState(config: ChannelConfig): SavedChannelState {
   }
 }
 
-export function saveChannelState(config: ChannelConfig, state: SavedChannelState) {
+export function saveChannelState(config: ChannelConfig, state: SavedChannelState): void {
   if (!config.channelId.trim()) return;
   localStorage.setItem(channelStorageKey(config), JSON.stringify(state));
 }
 
-export function clearChannelState(config: ChannelConfig) {
+export function clearChannelState(config: ChannelConfig): void {
   if (!config.channelId.trim()) return;
   localStorage.removeItem(channelStorageKey(config));
-}
-
-export function loadSavedApiKey() {
-  return localStorage.getItem(API_KEY_KEY) ?? '';
-}
-
-export function saveApiKey(apiKey: string) {
-  localStorage.setItem(API_KEY_KEY, apiKey);
-}
-
-export function removeSavedApiKey() {
-  localStorage.removeItem(API_KEY_KEY);
 }
