@@ -64,13 +64,17 @@ input:focus, select:focus { border-color: #3167ce; box-shadow: 0 0 0 3px rgba(49
 .orbit-one { inset: 2%; }
 .orbit-two { inset: 8%; border-color: rgba(238, 138, 28, .28); transform: rotate(28deg); }
 .wheel-rim { position: absolute; z-index: 1; inset: 8.5%; border: 1px solid rgba(255, 255, 255, .75); border-radius: 50%; pointer-events: none; box-shadow: inset 0 0 0 6px rgba(255, 255, 255, .16), 0 0 0 3px rgba(31, 94, 255, .12); }
-.wheel { width: 84%; aspect-ratio: 1; border-radius: 50%; border: 12px solid #fff; box-shadow: 0 0 0 1px #cad3df, 0 18px 34px rgba(22, 38, 63, .16), inset 0 0 0 1px rgba(255, 255, 255, .7); position: relative; transition: transform 6.1s cubic-bezier(.10,.78,.04,1); will-change: transform; }
+.wheel { width: 84%; aspect-ratio: 1; border-radius: 50%; border: 12px solid #fff; box-shadow: 0 0 0 1px #cad3df, 0 18px 34px rgba(22, 38, 63, .16), inset 0 0 0 1px rgba(255, 255, 255, .7); position: relative; transition: transform 7.55s cubic-bezier(.08,.78,.06,1); will-change: transform; }
 .wheel::after { content: ""; position: absolute; inset: 2.5%; border: 1px solid rgba(255, 255, 255, .55); border-radius: 50%; pointer-events: none; }
-.wheel-center { position: absolute; z-index: 2; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: 102px; aspect-ratio: 1; display: grid; place-content: center; gap: 1px; text-align: center; border: 7px solid #fff; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #405f9b, #152033 62%); color: #fff; box-shadow: 0 0 0 2px rgba(31, 94, 255, .35), 0 6px 16px rgba(18, 30, 49, .28); letter-spacing: .05em; }
+.wheel-center { position: absolute; z-index: 2; left: 50%; top: 50%; width: 102px; aspect-ratio: 1; display: grid; place-content: center; gap: 1px; text-align: center; border: 7px solid #fff; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #405f9b, #152033 62%); color: #fff; box-shadow: 0 0 0 2px rgba(31, 94, 255, .35), 0 6px 16px rgba(18, 30, 49, .28); letter-spacing: .05em; transform: translate(-50%, -50%); }
 .wheel-center span { font-size: .62rem; font-weight: 800; opacity: .76; }
 .wheel-center strong { font-size: 1.15rem; line-height: 1; }
-.wheel-pointer { position: absolute; z-index: 5; top: 4.5%; width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 47px solid #111a2b; filter: drop-shadow(0 3px 1px rgba(255, 255, 255, .9)); transform-origin: 50% 0; }
-.wheel-pointer::after { content: ""; position: absolute; top: -43px; left: -8px; width: 16px; height: 16px; background: #fff; border: 4px solid #111a2b; border-radius: 50%; }
+/* 중앙 핀은 고정되고, 바늘만 핀을 축으로 눌렸다 돌아옵니다. */
+.wheel-pointer { position: absolute; z-index: 6; top: 3.8%; left: 50%; width: 68px; height: 82px; transform: translateX(-50%); pointer-events: none; }
+.pointer-pin { position: absolute; z-index: 3; top: 0; left: 50%; width: 22px; height: 22px; border: 5px solid #111a2b; border-radius: 50%; background: #fff; box-shadow: 0 2px 0 rgba(255, 255, 255, .9), 0 3px 7px rgba(17, 26, 43, .28); transform: translateX(-50%); }
+.pointer-flap { position: absolute; inset: 0; z-index: 2; transform-origin: 50% 11px; }
+.pointer-arrow { position: absolute; top: 10px; left: 50%; width: 42px; height: 60px; background: linear-gradient(180deg, #17243a 0%, #111a2b 100%); clip-path: polygon(50% 96%, 3% 14%, 33% 14%, 33% 3%, 67% 3%, 67% 14%, 97% 14%); filter: drop-shadow(0 3px 1px rgba(255, 255, 255, .9)); transform: translateX(-50%); }
+.pointer-arrow::after { content: ""; position: absolute; top: 7px; left: 50%; width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .36); transform: translateX(-50%); }
 .wheel-spark { position: absolute; z-index: 3; color: #ee8a1c; font-size: 1.4rem; font-weight: 900; opacity: .58; pointer-events: none; }
 .spark-a { top: 14%; right: 7%; }
 .spark-b { bottom: 13%; left: 6%; font-size: .95rem; color: #1f5eff; }
@@ -79,7 +83,6 @@ input:focus, select:focus { border-color: #3167ce; box-shadow: 0 0 0 3px rgba(49
 .wheel-wrap.is-spinning .wheel-halo { opacity: 1; transform: scale(1.14); animation: haloPulse .75s ease-in-out infinite alternate; }
 .wheel-wrap.is-spinning .wheel-orbit { animation: orbitSpin 1.7s linear infinite; }
 .wheel-wrap.is-spinning .orbit-two { animation-duration: 1.15s; animation-direction: reverse; }
-.wheel-wrap.is-spinning .wheel-pointer { animation: pointerBounce .14s ease-in-out infinite alternate; }
 .wheel-wrap.is-spinning .wheel-center { animation: centerPulse .65s ease-in-out infinite alternate; }
 .wheel-wrap.is-spinning .wheel-spark { animation: sparkFlicker .42s ease-in-out infinite alternate; }
 
@@ -146,7 +149,8 @@ input:focus, select:focus { border-color: #3167ce; box-shadow: 0 0 0 3px rgba(49
 @keyframes statusPulse { 50% { box-shadow: 0 0 0 6px rgba(24, 132, 90, 0); } }
 @keyframes haloPulse { to { transform: scale(1.24); filter: blur(6px); } }
 @keyframes orbitSpin { to { transform: rotate(360deg); } }
-@keyframes pointerBounce { to { transform: rotate(4deg) translateY(2px); } }
+@keyframes pointerClick { 0% { transform: rotate(0deg); } 38% { transform: rotate(-14deg) translateY(2px); } 72% { transform: rotate(4deg); } 100% { transform: rotate(0deg); } }
+.pointer-flap.is-ticking { animation: pointerClick .13s cubic-bezier(.16,.85,.28,1); }
 @keyframes centerPulse { to { transform: translate(-50%, -50%) scale(1.08); box-shadow: 0 0 0 7px rgba(31, 94, 255, .11), 0 8px 19px rgba(18, 30, 49, .32); } }
 @keyframes sparkFlicker { to { opacity: 1; transform: scale(1.4) rotate(30deg); } }
 @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
@@ -180,7 +184,9 @@ input:focus, select:focus { border-color: #3167ce; box-shadow: 0 0 0 3px rgba(49
   .wheel-stage { width: min(96vw, 540px); }
   .wheel { border-width: 9px; }
   .wheel-center { width: 82px; border-width: 5px; }
-  .wheel-pointer { border-left-width: 16px; border-right-width: 16px; border-top-width: 38px; }
+  .wheel-pointer { width: 56px; height: 72px; top: 3.1%; }
+  .pointer-pin { width: 20px; height: 20px; border-width: 4px; }
+  .pointer-arrow { width: 36px; height: 53px; }
   .rank-table-wrap { height: 435px; }
   .empty-cell { height: 375px; }
   .manual-form { grid-template-columns: 1fr 92px; }
@@ -192,3 +198,8 @@ input:focus, select:focus { border-color: #3167ce; box-shadow: 0 0 0 3px rgba(49
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .wheel { transition-duration: .01ms !important; }
 }
+
+/* 룰렛 조각 안의 선택지 이름 */
+.wheel-label-layer { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.wheel-label { fill: #fff; font-weight: 850; letter-spacing: -.06em; dominant-baseline: middle; paint-order: stroke fill; stroke: rgba(15, 27, 47, .38); stroke-width: .7px; stroke-linejoin: round; filter: drop-shadow(0 .6px .5px rgba(0, 0, 0, .28)); user-select: none; }
+@media (max-width: 620px) { .wheel-label { stroke-width: .85px; } }

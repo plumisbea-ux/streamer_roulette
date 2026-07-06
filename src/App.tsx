@@ -10,7 +10,9 @@ import type { ChannelConfig, ConnectionStatus, DonationLog, RouletteItem, SavedC
 const SOCKET_URL = 'https://socket.ssapi.kr';
 const MAX_LOGS = 100;
 const MAX_PROCESSED_IDS = 3000;
-const SPIN_DURATION_MS = 6100;
+const SPIN_DURATION_MS = 7700;
+const TICK_START_MS = 3500;
+const TICK_INTERVALS_MS = [60, 65, 70, 75, 82, 90, 100, 112, 126, 142, 160, 180, 205, 235, 270, 310, 355, 405, 465, 535];
 
 type GuideModalProps = { onClose: () => void };
 
@@ -68,10 +70,13 @@ export default function App() {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<RouletteItem | null>(null);
+  const [tickId, setTickId] = useState(0);
 
   const socketRef = useRef<Socket | null>(null);
   const pingTimerRef = useRef<number | null>(null);
   const spinTimerRef = useRef<number | null>(null);
+  const tickTimerRefs = useRef<number[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const processedIdSetRef = useRef<Set<string>>(new Set(initialState.processedDonationIds));
   const activeConfigRef = useRef(activeConfig);
   const voteUnitRef = useRef(activeConfig.voteUnitPrice);
@@ -110,6 +115,8 @@ export default function App() {
     return () => {
       disconnectSocket(false);
       if (spinTimerRef.current !== null) window.clearTimeout(spinTimerRef.current);
+      clearTickTimers();
+      if (audioContextRef.current) void audioContextRef.current.close();
     };
   }, []);
 
@@ -339,8 +346,60 @@ export default function App() {
     setConnectionNote('현재 채널의 데이터를 초기화했습니다.');
   }
 
+  function clearTickTimers(): void {
+    tickTimerRefs.current.forEach((timer) => window.clearTimeout(timer));
+    tickTimerRefs.current = [];
+  }
+
+  function prepareTickAudio(): void {
+    try {
+      const audioContext = audioContextRef.current ?? new AudioContext();
+      audioContextRef.current = audioContext;
+      if (audioContext.state === 'suspended') void audioContext.resume();
+    } catch {
+      // 소리를 낼 수 없는 환경에서는 시각 효과만 적용합니다.
+    }
+  }
+
+  function playTickSound(index: number): void {
+    const audioContext = audioContextRef.current;
+    if (!audioContext) return;
+
+    try {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const now = audioContext.currentTime;
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(820 - Math.min(170, index * 7), now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.028, now + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.038);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.045);
+    } catch {
+      // 브라우저의 오디오 정책으로 막히면 시각 효과만 유지합니다.
+    }
+  }
+
+  function startTickSequence(): void {
+    clearTickTimers();
+    let elapsed = TICK_START_MS;
+
+    TICK_INTERVALS_MS.forEach((delay, index) => {
+      elapsed += delay;
+      const timer = window.setTimeout(() => {
+        setTickId((previous) => previous + 1);
+        playTickSound(index);
+      }, elapsed);
+      tickTimerRefs.current.push(timer);
+    });
+  }
+
   function spin(): void {
-    const snapshot = items.filter((item) => item.votes > 0);
+    // 룰렛에 보이는 순서와 동일한 배열로 추첨해야, 포인터 위치와 결과 팝업이 항상 일치합니다.
+    const snapshot = sortedItems.filter((item) => item.votes > 0);
     const picked = pickWeightedPosition(snapshot);
     if (!picked || spinning) {
       if (!spinning) window.alert('룰렛을 돌릴 선택지가 없습니다.');
@@ -349,6 +408,8 @@ export default function App() {
 
     const { winner, targetAngle } = picked;
     setResult(null);
+    prepareTickAudio();
+    startTickSequence();
     setSpinning(true);
     setRotation((previous) => {
       const current = ((previous % 360) + 360) % 360;
@@ -359,6 +420,7 @@ export default function App() {
 
     if (spinTimerRef.current !== null) window.clearTimeout(spinTimerRef.current);
     spinTimerRef.current = window.setTimeout(() => {
+      clearTickTimers();
       setSpinning(false);
       setResult(winner);
       spinTimerRef.current = null;
@@ -429,7 +491,7 @@ export default function App() {
             </div>
             <button className="button primary" type="button" onClick={spin} disabled={spinning}>{spinning ? '운명 결정 중…' : '룰렛 돌리기'}</button>
           </div>
-          <Wheel items={sortedItems} rotation={rotation} spinning={spinning} />
+          <Wheel items={sortedItems} rotation={rotation} spinning={spinning} tickId={tickId} />
           <p className="muted-note">표 비율에 따라 룰렛 칸의 크기와 당첨 확률이 달라집니다.</p>
         </section>
 
