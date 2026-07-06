@@ -175,10 +175,17 @@ export default function App() {
       }
       return [...previous, { id, label, votes: safeVotes, createdAt: now, updatedAt: now }];
     });
-    setDonationLogs((previous) => [
-      { id: makeId(log.source), nickname: log.nickname, message: log.message ?? label, amount: Math.max(0, log.amount), addedVotes: safeVotes, receivedAt: now, source: log.source },
-      ...previous,
-    ].slice(0, MAX_LOGS));
+    const nextLog: DonationLog = {
+      id: makeId(log.source),
+      nickname: log.nickname,
+      message: log.message ?? label,
+      amount: Math.max(0, log.amount),
+      addedVotes: safeVotes,
+      receivedAt: now,
+      source: log.source,
+    };
+
+    setDonationLogs((previous) => [nextLog, ...previous].slice(0, MAX_LOGS));
   }
 
   function onDonation(payload: unknown): void {
@@ -201,10 +208,16 @@ export default function App() {
     const nickname = String(donation.nickname ?? '익명');
 
     if (!message || votes <= 0) {
-      setDonationLogs((previous) => [
-        { id: donationId || makeId('donation'), nickname, message: message || '(메시지 없음)', amount, addedVotes: 0, receivedAt: Date.now(), source: 'donation' },
-        ...previous,
-      ].slice(0, MAX_LOGS));
+      const ignoredLog: DonationLog = {
+        id: donationId || makeId('donation'),
+        nickname,
+        message: message || '(메시지 없음)',
+        amount,
+        addedVotes: 0,
+        receivedAt: Date.now(),
+        source: 'donation',
+      };
+      setDonationLogs((previous) => [ignoredLog, ...previous].slice(0, MAX_LOGS));
       return;
     }
 
