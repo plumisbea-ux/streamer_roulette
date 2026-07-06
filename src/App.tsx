@@ -11,6 +11,7 @@ const SOCKET_URL = 'https://socket.ssapi.kr';
 const MAX_LOGS = 100;
 const MAX_PROCESSED_IDS = 3000;
 const SPIN_DURATION_MS = 7700;
+const ROULETTE_TITLE_STORAGE_KEY = 'simple-stream-roulette:display-title:v1';
 const TICK_START_MS = 3500;
 const TICK_INTERVALS_MS = [60, 65, 70, 75, 82, 90, 100, 112, 126, 142, 160, 180, 205, 235, 270, 310, 355, 405, 465, 535];
 
@@ -54,10 +55,20 @@ function emptyState(): SavedChannelState {
   return { version: 1, items: [], donationLogs: [], processedDonationIds: [], updatedAt: Date.now() };
 }
 
+function loadRouletteTitle(): string {
+  try {
+    const saved = localStorage.getItem(ROULETTE_TITLE_STORAGE_KEY)?.trim();
+    return saved || '후원 룰렛';
+  } catch {
+    return '후원 룰렛';
+  }
+}
+
 export default function App() {
   const initialConfig = useMemo(() => loadLastConfig(), []);
   const initialState = useMemo(() => loadChannelState(initialConfig), [initialConfig]);
   const [draft, setDraft] = useState<ChannelConfig>(initialConfig);
+  const [rouletteTitle, setRouletteTitle] = useState(loadRouletteTitle);
   const [activeConfig, setActiveConfig] = useState<ChannelConfig>(initialConfig);
   const [items, setItems] = useState<RouletteItem[]>(initialState.items);
   const [donationLogs, setDonationLogs] = useState<DonationLog[]>(initialState.donationLogs);
@@ -100,6 +111,14 @@ export default function App() {
   useEffect(() => {
     processedIdSetRef.current = new Set(processedIds);
   }, [processedIds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ROULETTE_TITLE_STORAGE_KEY, rouletteTitle.trim() || '후원 룰렛');
+    } catch {
+      // 저장을 지원하지 않는 환경에서는 현재 화면에만 제목을 유지합니다.
+    }
+  }, [rouletteTitle]);
 
   useEffect(() => {
     saveChannelState(activeConfig, {
@@ -430,9 +449,21 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">STREAM TOOL</p>
-          <h1>후원 룰렛</h1>
+        <div className="title-editor">
+          <p className="eyebrow">STREAM ROULETTE</p>
+          <h1 className="sr-only">{rouletteTitle.trim() || '후원 룰렛'}</h1>
+          <label className="sr-only" htmlFor="roulette-title">룰렛 제목</label>
+          <input
+            id="roulette-title"
+            className="roulette-title-input"
+            value={rouletteTitle}
+            onChange={(event) => setRouletteTitle(event.target.value)}
+            onBlur={() => setRouletteTitle((previous) => previous.trim() || '후원 룰렛')}
+            placeholder="룰렛 제목을 입력하세요"
+            maxLength={42}
+            autoComplete="off"
+          />
+          <p className="title-edit-hint">제목을 클릭해 방송용 룰렛 이름을 바로 바꿀 수 있습니다.</p>
         </div>
         <div className="topbar-actions">
           <button className="button secondary" type="button" onClick={() => setGuideOpen(true)}>사용 설명서</button>
@@ -508,7 +539,7 @@ export default function App() {
               <tbody>
                 {sortedItems.map((item, index) => (
                   <tr key={item.id}>
-                    <td>{index + 1}</td>
+                    <td><span className="rank-badge">{index + 1}</span></td>
                     <td className="option-name">{item.label}</td>
                     <td>
                       <div className="vote-editor">

@@ -17,18 +17,12 @@ type Segment = {
   sweep: number;
 };
 
-function displayLabel(label: string, sweep: number): string {
-  const compact = label.trim();
-  const limit = sweep < 14 ? 5 : sweep < 22 ? 8 : 13;
-  return compact.length > limit ? `${compact.slice(0, Math.max(1, limit - 1))}…` : compact;
-}
+const FIXED_LABEL_SIZE = 4.25;
 
-function labelFontSize(sweep: number): number {
-  if (sweep < 10) return 1.9;
-  if (sweep < 14) return 2.2;
-  if (sweep < 22) return 2.7;
-  if (sweep < 34) return 3.25;
-  return 4.05;
+function displayLabel(label: string): string {
+  const compact = label.trim();
+  const limit = 14;
+  return compact.length > limit ? `${compact.slice(0, limit - 1)}…` : compact;
 }
 
 export function Wheel({ items, rotation, spinning, tickId }: WheelProps) {
@@ -64,11 +58,10 @@ export function Wheel({ items, rotation, spinning, tickId }: WheelProps) {
         <div className="wheel" style={style}>
           <svg className="wheel-label-layer" viewBox="0 0 100 100" aria-hidden="true">
             {segments.map((segment) => {
-              const fontSize = labelFontSize(segment.sweep);
               const middle = segment.start + segment.sweep / 2;
               const radians = (middle * Math.PI) / 180;
               // 각 텍스트는 중심에 가까운 곳에서 시작해 바깥쪽으로 뻗습니다.
-              const innerRadius = segment.sweep < 26 ? 21 : 19;
+              const innerRadius = 20.5;
               const x = 50 + Math.sin(radians) * innerRadius;
               const y = 50 - Math.cos(radians) * innerRadius;
               const radialTextRotation = middle - 90;
@@ -79,11 +72,12 @@ export function Wheel({ items, rotation, spinning, tickId }: WheelProps) {
                   className="wheel-label"
                   x={x}
                   y={y}
-                  fontSize={fontSize}
+                  fontSize={FIXED_LABEL_SIZE}
                   textAnchor="start"
                   transform={`rotate(${radialTextRotation} ${x} ${y})`}
                 >
-                  {displayLabel(segment.item.label, segment.sweep)}
+                  <title>{segment.item.label}</title>
+                  {displayLabel(segment.item.label)}
                 </text>
               );
             })}
