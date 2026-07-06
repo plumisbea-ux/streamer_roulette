@@ -23,7 +23,8 @@ export function parseChannelId(value: string): string {
     const url = new URL(trimmed);
     const liveMatch = url.pathname.match(/\/live\/([^/?#]+)/i);
     if (liveMatch?.[1]) return liveMatch[1];
-    const pathPart = url.pathname.split('/').filter(Boolean).at(-1);
+    const pathSegments = url.pathname.split('/').filter(Boolean);
+    const pathPart = pathSegments[pathSegments.length - 1];
     if (pathPart) return pathPart;
   } catch {
     // URL이 아닌 일반 채널 ID는 그대로 사용합니다.
