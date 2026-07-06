@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { Wheel } from './components/Wheel';
-import { formatMoney, formatVotes, makeId, normalizeName, parseChannelId, pickWeighted, platformLabel, cleanLabel, winnerCenterAngle } from './lib/helpers';
+import { formatMoney, formatVotes, makeId, normalizeName, parseChannelId, pickWeightedPosition, platformLabel, cleanLabel } from './lib/helpers';
 import { asDonation, decodeSSapiPayload, platformMatches } from './lib/ssapi';
 import { SSAPI_API_KEY } from './lib/ssapiKey';
 import { clearChannelState, loadChannelState, loadLastConfig, saveChannelState, saveLastConfig } from './lib/storage';
@@ -10,6 +10,7 @@ import type { ChannelConfig, ConnectionStatus, DonationLog, RouletteItem, SavedC
 const SOCKET_URL = 'https://socket.ssapi.kr';
 const MAX_LOGS = 100;
 const MAX_PROCESSED_IDS = 3000;
+const SPIN_DURATION_MS = 6100;
 
 type GuideModalProps = { onClose: () => void };
 
@@ -340,19 +341,20 @@ export default function App() {
 
   function spin(): void {
     const snapshot = items.filter((item) => item.votes > 0);
-    const winner = pickWeighted(snapshot);
-    if (!winner || spinning) {
+    const picked = pickWeightedPosition(snapshot);
+    if (!picked || spinning) {
       if (!spinning) window.alert('룰렛을 돌릴 선택지가 없습니다.');
       return;
     }
 
+    const { winner, targetAngle } = picked;
     setResult(null);
     setSpinning(true);
-    const center = winnerCenterAngle(snapshot, winner.id);
     setRotation((previous) => {
       const current = ((previous % 360) + 360) % 360;
-      const correction = (360 - center - current + 360) % 360;
-      return previous + 360 * 7 + correction;
+      // 포인터가 12시 방향에 있으므로, 당첨 구역 안에서 무작위로 뽑힌 각도를 포인터 아래로 보냅니다.
+      const correction = (360 - targetAngle - current + 360) % 360;
+      return previous + 360 * 10 + correction;
     });
 
     if (spinTimerRef.current !== null) window.clearTimeout(spinTimerRef.current);
@@ -360,7 +362,7 @@ export default function App() {
       setSpinning(false);
       setResult(winner);
       spinTimerRef.current = null;
-    }, 4300);
+    }, SPIN_DURATION_MS);
   }
 
   return (
@@ -425,7 +427,7 @@ export default function App() {
               <p className="eyebrow">가중치 룰렛</p>
               <h2 id="wheel-heading">현재 표 {formatVotes(totalVotes)}</h2>
             </div>
-            <button className="button primary" type="button" onClick={spin} disabled={spinning}>{spinning ? '돌리는 중…' : '룰렛 돌리기'}</button>
+            <button className="button primary" type="button" onClick={spin} disabled={spinning}>{spinning ? '운명 결정 중…' : '룰렛 돌리기'}</button>
           </div>
           <Wheel items={sortedItems} rotation={rotation} spinning={spinning} />
           <p className="muted-note">표 비율에 따라 룰렛 칸의 크기와 당첨 확률이 달라집니다.</p>
@@ -494,9 +496,14 @@ export default function App() {
       {result && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setResult(null)}>
           <section className="modal result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="result-confetti" aria-hidden="true">
+              <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
+            </div>
+            <div className="result-badge" aria-hidden="true">★</div>
             <p className="eyebrow">당첨 선택지</p>
             <h2 id="result-title">{result.label}</h2>
-            <p>{formatVotes(result.votes)}</p>
+            <p className="result-votes">{formatVotes(result.votes)}</p>
+            <p className="result-copy">오늘의 운명이 선택되었습니다.</p>
             <button className="button primary" type="button" onClick={() => setResult(null)}>확인</button>
           </section>
         </div>

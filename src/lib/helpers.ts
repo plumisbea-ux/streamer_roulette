@@ -46,27 +46,51 @@ export function formatMoney(value: number): string {
   return `${Math.max(0, Math.floor(value)).toLocaleString('ko-KR')}원`;
 }
 
-export function pickWeighted(items: RouletteItem[]): RouletteItem | null {
+export type WeightedPick = {
+  winner: RouletteItem;
+  /** 당첨 구역 안에서 실제로 멈출 각도(0~360도) */
+  targetAngle: number;
+};
+
+function randomUnit(): number {
+  // 가능한 브라우저에서는 Math.random()보다 예측하기 어려운 난수를 사용합니다.
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const values = new Uint32Array(1);
+    crypto.getRandomValues(values);
+    return values[0] / 4_294_967_296;
+  }
+  return Math.random();
+}
+
+/**
+ * 표 수를 확률 가중치로 사용해 한 표를 무작위로 뽑습니다.
+ * 선택지만 고르는 것이 아니라 그 선택지의 부채꼴 안에서 멈출 위치까지 같이 뽑습니다.
+ */
+export function pickWeightedPosition(items: RouletteItem[]): WeightedPick | null {
   const total = items.reduce((sum, item) => sum + Math.max(0, item.votes), 0);
   if (total <= 0) return null;
 
-  let marker = Math.random() * total;
-  for (const item of items) {
-    marker -= Math.max(0, item.votes);
-    if (marker < 0) return item;
-  }
-  return items[items.length - 1] ?? null;
-}
-
-export function winnerCenterAngle(items: RouletteItem[], winnerId: string): number {
-  const total = items.reduce((sum, item) => sum + Math.max(0, item.votes), 0);
-  if (total <= 0) return 0;
-  let start = 0;
+  const marker = randomUnit() * total;
+  let accumulatedVotes = 0;
 
   for (const item of items) {
-    const sweep = (Math.max(0, item.votes) / total) * 360;
-    if (item.id === winnerId) return start + sweep / 2;
-    start += sweep;
+    const votes = Math.max(0, item.votes);
+    if (votes <= 0) continue;
+
+    if (marker < accumulatedVotes + votes) {
+      const fractionInSegment = (marker - accumulatedVotes) / votes;
+      const startAngle = (accumulatedVotes / total) * 360;
+      const sweepAngle = (votes / total) * 360;
+      return {
+        winner: item,
+        targetAngle: startAngle + sweepAngle * fractionInSegment,
+      };
+    }
+
+    accumulatedVotes += votes;
   }
-  return 0;
+
+  const winner = items[items.length - 1];
+  if (!winner) return null;
+  return { winner, targetAngle: 359.999999 };
 }

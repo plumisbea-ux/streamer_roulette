@@ -25,13 +25,25 @@ export function Wheel({ items, rotation, spinning }: WheelProps) {
   };
 
   return (
-    <div className="wheel-wrap" aria-label="가중치 룰렛">
-      <div className="wheel-pointer" aria-hidden="true" />
-      <div className={`wheel ${spinning ? 'is-spinning' : ''}`} style={style}>
-        <div className="wheel-center">룰렛</div>
+    <div className={`wheel-wrap ${spinning ? 'is-spinning' : ''}`} aria-label="가중치 룰렛">
+      <div className="wheel-stage">
+        <div className="wheel-halo" aria-hidden="true" />
+        <div className="wheel-orbit orbit-one" aria-hidden="true" />
+        <div className="wheel-orbit orbit-two" aria-hidden="true" />
+        <div className="wheel-pointer" aria-hidden="true" />
+        <div className="wheel-rim" aria-hidden="true" />
+        <div className="wheel" style={style}>
+          <div className="wheel-center">
+            <span>{spinning ? 'SPIN' : 'LUCKY'}</span>
+            <strong>{spinning ? '…' : 'GO'}</strong>
+          </div>
+        </div>
+        <div className="wheel-spark spark-a" aria-hidden="true">✦</div>
+        <div className="wheel-spark spark-b" aria-hidden="true">✦</div>
+        <div className="wheel-spark spark-c" aria-hidden="true">✦</div>
       </div>
-      <div className="wheel-caption">
-        {items.length ? `${items.length}개 선택지 · ${total.toLocaleString('ko-KR')}표` : '선택지를 추가하세요'}
+      <div className="wheel-caption" aria-live="polite">
+        {spinning ? '운명을 고르는 중…' : items.length ? `${items.length}개 선택지 · ${total.toLocaleString('ko-KR')}표` : '선택지를 추가하세요'}
       </div>
     </div>
   );
