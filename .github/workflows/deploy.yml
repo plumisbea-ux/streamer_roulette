@@ -29,10 +29,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          rm -f package-lock.json
+          npm config set registry https://registry.npmjs.org/
+          npm install --no-package-lock
 
       - name: Build
-        run: npm run build
+        run: npm cli
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
