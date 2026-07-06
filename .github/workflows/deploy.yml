@@ -35,7 +35,7 @@ jobs:
           npm install --no-package-lock
 
       - name: Build
-        run: npm cli
+        run: npm run build
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
